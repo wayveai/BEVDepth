@@ -3,6 +3,7 @@ from functools import partial
 
 import mmcv
 import os
+import numpy as np 
 import torch
 import torch.nn.functional as F
 import torch.nn.parallel
@@ -203,6 +204,7 @@ class BEVDepthLightningModel(LightningModule):
         self.eval_interval = eval_interval
         self.batch_size_per_device = batch_size_per_device
         self.data_root = data_root
+        assert os.path.exists(self.data_root)
         self.basic_lr_per_img = 2e-4 / 64
         self.class_names = class_names
         self.backbone_conf = backbone_conf
@@ -462,3 +464,29 @@ class BEVDepthLightningModel(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         return parent_parser
+
+def debug_print(in_val, prefix='', info_str=None):
+    """helper fn to print nested structures
+    """
+    if info_str is not None:
+        print(f"{prefix}{info_str}")
+
+    tmp = in_val 
+    if isinstance(tmp, torch.Tensor):
+        print(f"{prefix}tensor, {tmp.shape} {tmp.device}")
+    elif isinstance(tmp, np.ndarray):
+        print(f"{prefix}nparray, {tmp.shape}")
+    elif type(tmp) == dict:
+        print(f"{prefix}dict, {len(tmp)}")
+        for k, v in tmp.items():
+            debug_print(v, prefix+'  ', k)
+    elif type(tmp) == tuple:
+        print(f"{prefix}tuple, {len(tmp)}")
+        for it in tmp:
+            debug_print(it, prefix+'  ')
+    elif type(tmp) == list:
+        print(f"{prefix}list, {len(tmp)}")
+        for it in tmp:
+            debug_print(it, prefix+'  ')
+    else:
+        print(f"{prefix}{tmp}")

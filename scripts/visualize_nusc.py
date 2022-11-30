@@ -124,6 +124,8 @@ def demo(
     idx,
     nusc_results_file,
     dump_file,
+    nusc_root,
+    infos=None,
     threshold=0.0,
     show_range=60,
     show_classes=[
@@ -144,13 +146,14 @@ def demo(
         'CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT',
         'CAM_BACK', 'CAM_BACK_LEFT'
     ]
-    infos = mmcv.load('data/nuScenes/nuscenes_12hz_infos_val.pkl')
+    if infos is None:
+        infos = mmcv.load('/home/francis/code/object_detection/BEVDepth/data/nuScenes/nuscenes_infos_val.pkl')
     assert idx < len(infos)
     # Get data from dataset
     results = mmcv.load(nusc_results_file)['results']
     info = infos[idx]
     lidar_path = info['lidar_infos']['LIDAR_TOP']['filename']
-    lidar_points = np.fromfile(os.path.join('data/nuScenes', lidar_path),
+    lidar_points = np.fromfile(os.path.join(nusc_root, lidar_path),
                                dtype=np.float32,
                                count=-1).reshape(-1, 5)[..., :4]
     lidar_calibrated_sensor = info['lidar_infos']['LIDAR_TOP'][
@@ -212,7 +215,7 @@ def demo(
         plt.ylim(900, 0)
 
         img = mmcv.imread(
-            os.path.join('data/nuScenes', info['cam_infos'][k]['filename']))
+            os.path.join(nusc_root, info['cam_infos'][k]['filename']))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Draw images

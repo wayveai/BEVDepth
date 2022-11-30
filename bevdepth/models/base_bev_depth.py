@@ -52,7 +52,7 @@ class BaseBEVDepth(nn.Module):
         Returns:
             tuple(list[dict]): Output results for tasks.
         """
-        if self.is_train_depth and self.training:
+        if self.is_train_depth or self.training:
             x, depth_pred = self.backbone(x,
                                           mats_dict,
                                           timestamps,

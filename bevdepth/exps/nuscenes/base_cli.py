@@ -25,7 +25,7 @@ def run_cli(model_class=BEVDepthLightningModel,
                                dest='predict',
                                action='store_true',
                                help='predict model on testing set')
-    parent_parser.add_argument('-b', '--batch_size_per_device', type=int)
+    parent_parser.add_argument('-b', '--batch_size_per_device', type=int, default=1)
     parent_parser.add_argument('--seed',
                                type=int,
                                default=0,
@@ -40,7 +40,7 @@ def run_cli(model_class=BEVDepthLightningModel,
                         gradient_clip_val=5,
                         limit_val_batches=0,
                         enable_checkpointing=True,
-                        precision=16,
+                        # precision=16,
                         default_root_dir=os.path.join('./outputs/', exp_name))
     args = parser.parse_args()
     if args.seed is not None:

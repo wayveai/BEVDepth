@@ -216,7 +216,7 @@ class DetNuscEvaluator():
         if tmp_dir is not None:
             tmp_dir.cleanup()
 
-    def _format_bbox(self, results, img_metas, jsonfile_prefix=None):
+    def _format_bbox(self, results, img_metas, jsonfile_prefix=None, jsonfile_name='results_nusc.json', dump_file=True):
         """Convert the results to the standard format.
 
         Args:
@@ -292,8 +292,12 @@ class DetNuscEvaluator():
             'meta': self.modality,
             'results': nusc_annos,
         }
-        mmcv.mkdir_or_exist(jsonfile_prefix)
-        res_path = osp.join(jsonfile_prefix, 'results_nusc.json')
-        print('Results writes to', res_path)
-        mmcv.dump(nusc_submissions, res_path)
-        return res_path
+
+        if dump_file:
+            mmcv.mkdir_or_exist(jsonfile_prefix)
+            res_path = osp.join(jsonfile_prefix, jsonfile_name)
+            print('Results writes to', res_path)
+            mmcv.dump(nusc_submissions, res_path)
+            return res_path
+        else: 
+            return nusc_submissions 
