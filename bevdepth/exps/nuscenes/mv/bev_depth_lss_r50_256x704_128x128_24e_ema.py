@@ -4,12 +4,13 @@ import torch.nn.parallel
 import torch.utils.data
 import torch.utils.data.distributed
 
-from bevdepth.exps.nuscenes.base_cli import run_cli
+from bevdepth.exps.base_cli import run_cli
 from bevdepth.exps.nuscenes.base_exp import \
     BEVDepthLightningModel as BaseBEVDepthLightningModel
 
 
 class BEVDepthLightningModel(BaseBEVDepthLightningModel):
+
     def configure_optimizers(self):
         lr = self.basic_lr_per_img * \
             self.batch_size_per_device * self.gpus
