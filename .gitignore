@@ -210,6 +210,8 @@ inference_test_output
 *.npy
 *.pth
 events.out.tfevents*
+notebooks
+data
 
 # vscode
 *.code-workspace
