@@ -321,6 +321,9 @@ class BEVDepthLightningModel(LightningModule):
                 mats[key] = value.cuda()
             sweep_imgs = sweep_imgs.cuda()
         preds = self.model(sweep_imgs, mats)
+        if self.model.is_train_depth:
+            # throw away the depth prediction as we don't use those during evaluation
+            preds = preds[0]
         if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
             results = self.model.module.get_bboxes(preds, img_metas)
         else:
