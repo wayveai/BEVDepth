@@ -1,50 +1,53 @@
-'''Modified from # https://github.com/nutonomy/nuscenes-devkit/blob/57889ff20678577025326cfc24e57424a829be0a/python-sdk/nuscenes/eval/detection/evaluate.py#L222 # noqa
-'''
+"""Modified from # https://github.com/nutonomy/nuscenes-devkit/blob/57889ff20678577025326cfc24e57424a829be0a/python-sdk/nuscenes/eval/detection/evaluate.py#L222 # noqa
+"""
 import os.path as osp
 import tempfile
 
 import mmcv
+import mmengine
 import numpy as np
 import pyquaternion
 from nuscenes.utils.data_classes import Box
 from pyquaternion import Quaternion
 
-__all__ = ['DetNuscEvaluator']
+__all__ = ["DetNuscEvaluator"]
 
 
-class DetNuscEvaluator():
+class DetNuscEvaluator:
     ErrNameMapping = {
-        'trans_err': 'mATE',
-        'scale_err': 'mASE',
-        'orient_err': 'mAOE',
-        'vel_err': 'mAVE',
-        'attr_err': 'mAAE',
+        "trans_err": "mATE",
+        "scale_err": "mASE",
+        "orient_err": "mAOE",
+        "vel_err": "mAVE",
+        "attr_err": "mAAE",
     }
 
     DefaultAttribute = {
-        'car': 'vehicle.parked',
-        'pedestrian': 'pedestrian.moving',
-        'trailer': 'vehicle.parked',
-        'truck': 'vehicle.parked',
-        'bus': 'vehicle.moving',
-        'motorcycle': 'cycle.without_rider',
-        'construction_vehicle': 'vehicle.parked',
-        'bicycle': 'cycle.without_rider',
-        'barrier': '',
-        'traffic_cone': '',
+        "car": "vehicle.parked",
+        "pedestrian": "pedestrian.moving",
+        "trailer": "vehicle.parked",
+        "truck": "vehicle.parked",
+        "bus": "vehicle.moving",
+        "motorcycle": "cycle.without_rider",
+        "construction_vehicle": "vehicle.parked",
+        "bicycle": "cycle.without_rider",
+        "barrier": "",
+        "traffic_cone": "",
     }
 
     def __init__(
         self,
         class_names,
-        eval_version='detection_cvpr_2019',
-        data_root='./data/nuScenes',
-        version='v1.0-trainval',
-        modality=dict(use_lidar=False,
-                      use_camera=True,
-                      use_radar=False,
-                      use_map=False,
-                      use_external=False),
+        eval_version="detection_cvpr_2019",
+        data_root="./data/nuScenes",
+        version="v1.0-trainval",
+        modality=dict(
+            use_lidar=False,
+            use_camera=True,
+            use_radar=False,
+            use_map=False,
+            use_external=False,
+        ),
         output_dir=None,
     ) -> None:
         self.eval_version = eval_version
@@ -58,11 +61,9 @@ class DetNuscEvaluator():
         self.modality = modality
         self.output_dir = output_dir
 
-    def _evaluate_single(self,
-                         result_path,
-                         logger=None,
-                         metric='bbox',
-                         result_name='pts_bbox'):
+    def _evaluate_single(
+        self, result_path, logger=None, metric="bbox", result_name="pts_bbox"
+    ):
         """Evaluation for a single model in nuScenes protocol.
 
         Args:
@@ -80,48 +81,48 @@ class DetNuscEvaluator():
         from nuscenes.eval.detection.evaluate import NuScenesEval
 
         output_dir = osp.join(*osp.split(result_path)[:-1])
-        nusc = NuScenes(version=self.version,
-                        dataroot=self.data_root,
-                        verbose=False)
+        nusc = NuScenes(version=self.version, dataroot=self.data_root, verbose=False)
         eval_set_map = {
-            'v1.0-mini': 'mini_val',
-            'v1.0-trainval': 'val',
+            "v1.0-mini": "mini_val",
+            "v1.0-trainval": "val",
         }
-        nusc_eval = NuScenesEval(nusc,
-                                 config=self.eval_detection_configs,
-                                 result_path=result_path,
-                                 eval_set=eval_set_map[self.version],
-                                 output_dir=output_dir,
-                                 verbose=False)
+        nusc_eval = NuScenesEval(
+            nusc,
+            config=self.eval_detection_configs,
+            result_path=result_path,
+            eval_set=eval_set_map[self.version],
+            output_dir=output_dir,
+            verbose=False,
+        )
         nusc_eval.main(render_curves=False)
 
         # record metrics
-        metrics = mmcv.load(osp.join(output_dir, 'metrics_summary.json'))
+        metrics = mmengine.load(osp.join(output_dir, "metrics_summary.json"))
         detail = dict()
-        metric_prefix = f'{result_name}_NuScenes'
+        metric_prefix = f"{result_name}_NuScenes"
         for class_name in self.class_names:
-            for k, v in metrics['label_aps'][class_name].items():
-                val = float('{:.4f}'.format(v))
-                detail['{}/{}_AP_dist_{}'.format(metric_prefix, class_name,
-                                                 k)] = val
-            for k, v in metrics['label_tp_errors'][class_name].items():
-                val = float('{:.4f}'.format(v))
-                detail['{}/{}_{}'.format(metric_prefix, class_name, k)] = val
-            for k, v in metrics['tp_errors'].items():
-                val = float('{:.4f}'.format(v))
-                detail['{}/{}'.format(metric_prefix,
-                                      self.ErrNameMapping[k])] = val
+            for k, v in metrics["label_aps"][class_name].items():
+                val = float("{:.4f}".format(v))
+                detail["{}/{}_AP_dist_{}".format(metric_prefix, class_name, k)] = val
+            for k, v in metrics["label_tp_errors"][class_name].items():
+                val = float("{:.4f}".format(v))
+                detail["{}/{}_{}".format(metric_prefix, class_name, k)] = val
+            for k, v in metrics["tp_errors"].items():
+                val = float("{:.4f}".format(v))
+                detail["{}/{}".format(metric_prefix, self.ErrNameMapping[k])] = val
 
-        detail['{}/NDS'.format(metric_prefix)] = metrics['nd_score']
-        detail['{}/mAP'.format(metric_prefix)] = metrics['mean_ap']
+        detail["{}/NDS".format(metric_prefix)] = metrics["nd_score"]
+        detail["{}/mAP".format(metric_prefix)] = metrics["mean_ap"]
         return detail
 
-    def format_results(self,
-                       results,
-                       img_metas,
-                       result_names=['img_bbox'],
-                       jsonfile_prefix=None,
-                       **kwargs):
+    def format_results(
+        self,
+        results,
+        img_metas,
+        result_names=["img_bbox"],
+        jsonfile_prefix=None,
+        **kwargs,
+    ):
         """Format the results to json (standard format for COCO evaluation).
 
         Args:
@@ -136,11 +137,11 @@ class DetNuscEvaluator():
                 the json filepaths, tmp_dir is the temporal directory created \
                 for saving json files when jsonfile_prefix is not specified.
         """
-        assert isinstance(results, list), 'results must be a list'
+        assert isinstance(results, list), "results must be a list"
 
         if jsonfile_prefix is None:
             tmp_dir = tempfile.TemporaryDirectory()
-            jsonfile_prefix = osp.join(tmp_dir.name, 'results')
+            jsonfile_prefix = osp.join(tmp_dir.name, "results")
         else:
             tmp_dir = None
 
@@ -155,30 +156,32 @@ class DetNuscEvaluator():
         # refactor this.
         for rasult_name in result_names:
             # not evaluate 2D predictions on nuScenes
-            if '2d' in rasult_name:
+            if "2d" in rasult_name:
                 continue
-            print(f'\nFormating bboxes of {rasult_name}')
+            print(f"\nFormating bboxes of {rasult_name}")
             tmp_file_ = osp.join(jsonfile_prefix, rasult_name)
             if self.output_dir:
-                result_files.update({
-                    rasult_name:
-                    self._format_bbox(results, img_metas, self.output_dir)
-                })
+                result_files.update(
+                    {
+                        rasult_name: self._format_bbox(
+                            results, img_metas, self.output_dir
+                        )
+                    }
+                )
             else:
-                result_files.update({
-                    rasult_name:
-                    self._format_bbox(results, img_metas, tmp_file_)
-                })
+                result_files.update(
+                    {rasult_name: self._format_bbox(results, img_metas, tmp_file_)}
+                )
         return result_files, tmp_dir
 
     def evaluate(
         self,
         results,
         img_metas,
-        metric='bbox',
+        metric="bbox",
         logger=None,
         jsonfile_prefix=None,
-        result_names=['img_bbox'],
+        result_names=["img_bbox"],
         show=False,
         out_dir=None,
         pipeline=None,
@@ -203,12 +206,12 @@ class DetNuscEvaluator():
         Returns:
             dict[str, float]: Results of each evaluation metric.
         """
-        result_files, tmp_dir = self.format_results(results, img_metas,
-                                                    result_names,
-                                                    jsonfile_prefix)
+        result_files, tmp_dir = self.format_results(
+            results, img_metas, result_names, jsonfile_prefix
+        )
         if isinstance(result_files, dict):
             for name in result_names:
-                print('Evaluating bboxes of {}'.format(name))
+                print("Evaluating bboxes of {}".format(name))
                 self._evaluate_single(result_files[name])
         elif isinstance(result_files, str):
             self._evaluate_single(result_files)
@@ -216,7 +219,14 @@ class DetNuscEvaluator():
         if tmp_dir is not None:
             tmp_dir.cleanup()
 
-    def _format_bbox(self, results, img_metas, jsonfile_prefix=None, jsonfile_name='results_nusc.json', dump_file=True):
+    def _format_bbox(
+        self,
+        results,
+        img_metas,
+        jsonfile_prefix=None,
+        jsonfile_name="results_nusc.json",
+        dump_file=True,
+    ):
         """Convert the results to the standard format.
 
         Args:
@@ -231,14 +241,14 @@ class DetNuscEvaluator():
         nusc_annos = {}
         mapped_class_names = self.class_names
 
-        print('Start to convert detection format...')
+        print("Start to convert detection format...")
 
-        for sample_id, det in enumerate(mmcv.track_iter_progress(results)):
+        for sample_id, det in enumerate(mmengine.utils.track_iter_progress(results)):
             boxes, scores, labels = det
             boxes = boxes
-            sample_token = img_metas[sample_id]['token']
-            trans = np.array(img_metas[sample_id]['ego2global_translation'])
-            rot = Quaternion(img_metas[sample_id]['ego2global_rotation'])
+            sample_token = img_metas[sample_id]["token"]
+            trans = np.array(img_metas[sample_id]["ego2global_translation"])
+            rot = Quaternion(img_metas[sample_id]["ego2global_rotation"])
             annos = list()
             for i, box in enumerate(boxes):
                 name = mapped_class_names[labels[i]]
@@ -251,25 +261,24 @@ class DetNuscEvaluator():
                 nusc_box = Box(center, wlh, quat, velocity=box_vel)
                 nusc_box.rotate(rot)
                 nusc_box.translate(trans)
-                if np.sqrt(nusc_box.velocity[0]**2 +
-                           nusc_box.velocity[1]**2) > 0.2:
+                if np.sqrt(nusc_box.velocity[0] ** 2 + nusc_box.velocity[1] ** 2) > 0.2:
                     if name in [
-                            'car',
-                            'construction_vehicle',
-                            'bus',
-                            'truck',
-                            'trailer',
+                        "car",
+                        "construction_vehicle",
+                        "bus",
+                        "truck",
+                        "trailer",
                     ]:
-                        attr = 'vehicle.moving'
-                    elif name in ['bicycle', 'motorcycle']:
-                        attr = 'cycle.with_rider'
+                        attr = "vehicle.moving"
+                    elif name in ["bicycle", "motorcycle"]:
+                        attr = "cycle.with_rider"
                     else:
                         attr = self.DefaultAttribute[name]
                 else:
-                    if name in ['pedestrian']:
-                        attr = 'pedestrian.standing'
-                    elif name in ['bus']:
-                        attr = 'vehicle.stopped'
+                    if name in ["pedestrian"]:
+                        attr = "pedestrian.standing"
+                    elif name in ["bus"]:
+                        attr = "vehicle.stopped"
                     else:
                         attr = self.DefaultAttribute[name]
                 nusc_anno = dict(
@@ -289,15 +298,15 @@ class DetNuscEvaluator():
             else:
                 nusc_annos[sample_token] = annos
         nusc_submissions = {
-            'meta': self.modality,
-            'results': nusc_annos,
+            "meta": self.modality,
+            "results": nusc_annos,
         }
 
         if dump_file:
-            mmcv.mkdir_or_exist(jsonfile_prefix)
+            mmengine.mkdir_or_exist(jsonfile_prefix)
             res_path = osp.join(jsonfile_prefix, jsonfile_name)
-            print('Results writes to', res_path)
-            mmcv.dump(nusc_submissions, res_path)
+            print("Results writes to", res_path)
+            mmengine.dump(nusc_submissions, res_path)
             return res_path
-        else: 
-            return nusc_submissions 
+        else:
+            return nusc_submissions

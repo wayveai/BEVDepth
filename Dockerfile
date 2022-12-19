@@ -73,10 +73,29 @@ RUN pip install \
 # Install pytorch and torchvision (need to do this last otherwise pytorch-lightning would try to upgrade torch?)
 RUN pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 -f https://download.pytorch.org/whl/torch_stable.html
 
-# Install MMDetection3D
-RUN pip install openmim 
+# Install MMx dependencies
+RUN pip install -U openmim
+RUN mim install mmengine
 RUN mim install mmcv-full mmdet mmsegmentation
-RUN git clone -b v1.0.0rc4 https://github.com/open-mmlab/mmdetection3d.git && \
+
+RUN git clone -b 2.x https://github.com/open-mmlab/mmcv.git && \
+    cd mmcv && \
+    pip install -e . && \
+    python .dev_scripts/check_installation.py
+
+RUN git clone -b 3.x https://github.com/open-mmlab/mmdetection.git && \
+    cd mmdetection && \
+    pip install -v -e .
+
+RUN git clone -b 1.x https://github.com/open-mmlab/mmsegmentation.git && \ 
+    cd mmsegmentation && \
+    pip install -v -e .
+
+RUN git clone -b 1.x https://github.com/open-mmlab/mmclassification.git && \
+    cd mmclassification && \
+    pip install -e .
+
+RUN git clone -b 1.1 https://github.com/open-mmlab/mmdetection3d.git && \
     cd mmdetection3d && \
     pip install -e . 
 
@@ -84,7 +103,6 @@ RUN git clone -b v1.0.0rc4 https://github.com/open-mmlab/mmdetection3d.git && \
 RUN git clone -b francis/dev https://github.com/wayveai/BEVDepth.git && \
     cd BEVDepth && \
     python setup.py develop
-
 
 # -------------------------
 # TODO: Setup nuScenes dataset (download nuscenes dataset from Azure if needed)  
@@ -105,12 +123,3 @@ RUN mkdir bevdepth/exps/nuscenes/ckpt && \
     wget -P bevdepth/exps/nuscenes/ckpt https://github.com/Megvii-BaseDetection/BEVDepth/releases/download/v0.0.2/bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da.pth
 
 RUN mkdir data && ln -s /nuscenes data/nuScenes
-
-CMD [ \
-    "python", \
-    "bevdepth/exps/nuscenes/mv/bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da.py", \
-    "--ckpt_path", "bevdepth/exps/nuscenes/ckpt/bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da.pth", \
-    "-e", \    
-    "-b", "2", \
-    "--gpus", "8" \
-    ]

@@ -3,6 +3,7 @@ import os
 from functools import partial
 
 import mmcv
+import mmengine
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -165,8 +166,8 @@ head_conf = {
     "train_cfg": train_cfg,
     "test_cfg": test_cfg,
     "in_channels": 256,  # Equal to bev_neck output_channels.
-    "loss_cls": dict(type="GaussianFocalLoss", reduction="mean"),
-    "loss_bbox": dict(type="L1Loss", reduction="mean", loss_weight=0.25),
+    "loss_cls": dict(type="mmdet.GaussianFocalLoss", reduction="mean"),
+    "loss_bbox": dict(type="mmdet.L1Loss", reduction="mean", loss_weight=0.25),
     "gaussian_overlap": 0.1,
     "min_radius": 2,
 }
@@ -208,7 +209,7 @@ class BEVDepthLightningModel(LightningModule):
         self.head_conf = head_conf
         self.ida_aug_conf = ida_aug_conf
         self.bda_aug_conf = bda_aug_conf
-        mmcv.mkdir_or_exist(default_root_dir)
+        mmengine.mkdir_or_exist(default_root_dir)
         self.default_root_dir = default_root_dir
         self.evaluator = DetNuscEvaluator(
             class_names=self.class_names, output_dir=self.default_root_dir
@@ -324,6 +325,7 @@ class BEVDepthLightningModel(LightningModule):
         if self.model.is_train_depth:
             # throw away the depth prediction as we don't use those during evaluation
             preds = preds[0]
+
         if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
             results = self.model.module.get_bboxes(preds, img_metas)
         else:
