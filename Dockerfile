@@ -100,6 +100,8 @@ RUN git clone -b 1.1 https://github.com/open-mmlab/mmdetection3d.git && \
     pip install -e . 
 
 # Install BEVDepth
+# hack to avoid caching this step
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
 RUN git clone -b francis/dev https://github.com/wayveai/BEVDepth.git && \
     cd BEVDepth && \
     python setup.py develop
@@ -116,10 +118,10 @@ RUN git clone -b francis/dev https://github.com/wayveai/BEVDepth.git && \
 #-----------------------
 WORKDIR /home/BEVDepth
 ENV PYTHONPATH "${PYTHONPATH}:/home/BEVDepth"
+RUN mkdir data && ln -s /nuscenes data/nuScenes
 
 # For debugging
 # download a pretrained checkpoint and run eval script to test if everything works
-RUN mkdir bevdepth/exps/nuscenes/ckpt && \
-    wget -P bevdepth/exps/nuscenes/ckpt https://github.com/Megvii-BaseDetection/BEVDepth/releases/download/v0.0.2/bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da.pth
+# RUN mkdir bevdepth/exps/nuscenes/ckpt && \
+#     wget -P bevdepth/exps/nuscenes/ckpt https://github.com/Megvii-BaseDetection/BEVDepth/releases/download/v0.0.2/bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da.pth
 
-RUN mkdir data && ln -s /nuscenes data/nuScenes

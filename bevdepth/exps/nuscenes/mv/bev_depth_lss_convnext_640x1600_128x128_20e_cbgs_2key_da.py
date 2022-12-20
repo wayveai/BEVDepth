@@ -73,25 +73,6 @@ backbone_conf = {
     "depth_net_conf": dict(in_channels=512, mid_channels=512),
 }
 
-head_conf.update(
-    dict(
-        separate_head=dict(
-            type="DCNSeparateHead",
-            dcn_config=dict(
-                type="DCN",
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                padding=1,
-                groups=4,
-            ),
-            init_bias=-2.19,
-            final_kernel=3,
-        )
-    )
-)
-
-
 ida_aug_conf = {
     "resize_lim": (0.94, 1.25),
     "final_dim": final_dim,
@@ -148,15 +129,41 @@ test_cfg = dict(
     nms_thr=0.2,
 )
 
+head_conf.update(
+    dict(
+        separate_head=dict(
+            type="DCNSeparateHead",
+            dcn_config=dict(
+                type="DCN",
+                in_channels=64,
+                out_channels=64,
+                kernel_size=3,
+                padding=1,
+                groups=4,
+            ),
+            init_bias=-2.19,
+            final_kernel=3,
+        ),
+        train_cfg=train_cfg,
+        test_cfg=test_cfg,
+        bbox_coder=bbox_coder,
+    )
+)
+
 
 class BEVDepthLightningModel(BaseBEVDepthLightningModel):
     def __init__(
-        self, backbone_conf=backbone_conf, ida_aug_conf=ida_aug_conf, **kwargs
+        self,
+        backbone_conf=backbone_conf,
+        ida_aug_conf=ida_aug_conf,
+        head_conf=head_conf,
+        **kwargs
     ):
         super().__init__(**kwargs)
         # overwrite the default
         self.backbone_conf = backbone_conf
         self.ida_aug_conf = ida_aug_conf
+        self.head_conf = head_conf
         self.dbound = self.backbone_conf["d_bound"]
         self.depth_channels = int((self.dbound[1] - self.dbound[0]) / self.dbound[2])
 

@@ -44,7 +44,7 @@ def run_cli(model_class=BEVDepthLightningModel, exp_name="base_exp", use_ema=Fal
         gradient_clip_val=5,
         limit_val_batches=0,
         enable_checkpointing=True,
-        # precision=16,
+        precision=16,
         default_root_dir=training_artifacts_root_dir,
     )
     args = parser.parse_args()
