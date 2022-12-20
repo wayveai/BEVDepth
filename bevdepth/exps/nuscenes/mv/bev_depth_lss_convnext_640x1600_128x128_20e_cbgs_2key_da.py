@@ -31,6 +31,18 @@ H = 900
 W = 1600
 final_dim = (640, 1600)
 
+convnext_arch_to_params = {
+    "small": {
+        "checkpoint": "https://download.openmmlab.com/mmclassification/v0/convnext/convnext-small_32xb128-noema_in1k_20221208-4a618995.pth",
+        "feature_channels": [96, 192, 384, 768],
+    },
+    "base": {
+        "checkpoint": "https://download.openmmlab.com/mmclassification/v0/convnext/convnext-base_32xb128-noema_in1k_20221208-f8182678.pth",
+        "feature_channels": [128, 256, 512, 1024],
+    },
+}
+convnext_arch = "small"
+
 
 # https://mmclassification.readthedocs.io/en/dev-1.x/papers/convnext.html
 backbone_conf = {
@@ -42,19 +54,19 @@ backbone_conf = {
     "output_channels": 80,
     "downsample_factor": 16,
     "img_backbone_conf": dict(
-        type="ConvNeXt",
-        arch="base",
+        type="mmcls.ConvNeXt",
+        arch=convnext_arch,
         out_indices=[0, 1, 2, 3],  # downsample input by 4, 8, 16, 32
         drop_path_rate=0.5,
         gap_before_final_norm=False,
         init_cfg=dict(
             type="Pretrained",
-            checkpoint="https://download.openmmlab.com/mmclassification/v0/convnext/convnext-base_32xb128-noema_in1k_20221208-f8182678.pth",
+            checkpoint=convnext_arch_to_params[convnext_arch]["checkpoint"],
         ),
     ),
     "img_neck_conf": dict(
         type="SECONDFPN",
-        in_channels=[128, 256, 512, 1024],
+        in_channels=convnext_arch_to_params[convnext_arch]["feature_channels"],
         upsample_strides=[0.25, 0.5, 1, 2],
         out_channels=[128, 128, 128, 128],
     ),
@@ -63,10 +75,20 @@ backbone_conf = {
 
 head_conf.update(
     dict(
-        type="DCNSeparateHead",
-        init_bias=-2.19,
-        final_kernel=3,
-    ),
+        separate_head=dict(
+            type="DCNSeparateHead",
+            dcn_config=dict(
+                type="DCN",
+                in_channels=64,
+                out_channels=64,
+                kernel_size=3,
+                padding=1,
+                groups=4,
+            ),
+            init_bias=-2.19,
+            final_kernel=3,
+        )
+    )
 )
 
 

@@ -9,6 +9,9 @@ from mmdet.utils import reduce_mean
 from mmdet.models import build_backbone
 from torch.cuda.amp import autocast
 
+from mmengine.structures import InstanceData
+
+
 __all__ = ["BEVDepthHead"]
 
 bev_backbone_conf = dict(
@@ -169,7 +172,7 @@ class BEVDepthHead(CenterHead):
         ret_values = super().forward(fpn_output)
         return ret_values
 
-    def get_targets_single(self, gt_bboxes_3d, gt_labels_3d):
+    def get_targets_single(self, gt_instances_3d: InstanceData):
         """Generate training targets for a single sample.
 
         Args:
@@ -187,6 +190,8 @@ class BEVDepthHead(CenterHead):
                 - list[torch.Tensor]: Masks indicating which boxes \
                     are valid.
         """
+        gt_bboxes_3d = gt_instances_3d.bboxes_3d
+        gt_labels_3d = gt_instances_3d.labels_3d
         max_objs = self.train_cfg["max_objs"] * self.train_cfg["dense_reg"]
         grid_size = torch.tensor(self.train_cfg["grid_size"])
         pc_range = torch.tensor(self.train_cfg["point_cloud_range"])

@@ -67,6 +67,7 @@ RUN pip install \
     setuptools \
     tensorboardX \ 
     wandb \
+    ipdb \ 
     pytorch-lightning==1.5.10 \ 
     torchmetrics==0.10.3
 
@@ -76,7 +77,6 @@ RUN pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 -f https://download.
 # Install MMx dependencies
 RUN pip install -U openmim
 RUN mim install mmengine
-RUN mim install mmcv-full mmdet mmsegmentation
 
 RUN git clone -b 2.x https://github.com/open-mmlab/mmcv.git && \
     cd mmcv && \

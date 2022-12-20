@@ -65,7 +65,7 @@ def run_cli(model_class=BEVDepthLightningModel, exp_name="base_exp", use_ema=Fal
         ema_callback = EMACallback(len(train_dataloader.dataset) * args.max_epochs)
         callbacks = callbacks.append(ema_callback)
 
-    trainer = pl.Trainer.from_argparse_args(args, callbacks=[callbacks])
+    trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks)
 
     if args.evaluate:
         trainer.test(model, ckpt_path=args.ckpt_path)
