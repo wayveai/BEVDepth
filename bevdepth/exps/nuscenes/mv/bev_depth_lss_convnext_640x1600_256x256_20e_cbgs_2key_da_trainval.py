@@ -10,10 +10,10 @@ DONE:
     - out_size_factor (in bbox_coder, train_cfg and test_cfg)
 - ConvNeXt-base backbone (img_backbone)
 - DCN centerhead 
+- total batch size 64 (8 * 8)
+- use both train and val set for training
 
 TODO:
-- total batch size 64
-- use both train and val set for training
 - data augmentation by randomly sampling time intervals in previous frames    
 """
 import torch
@@ -172,6 +172,10 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
         self.model = BaseBEVDepth(
             self.backbone_conf, self.head_conf, is_train_depth=True
         )
+        self.train_info_paths = [
+            os.path.join(self.data_root, "nuscenes_infos_train.pkl"),
+            os.path.join(self.data_root, "nuscenes_infos_val.pkl"),
+        ]
 
     def configure_optimizers(self):
         lr = self.basic_lr_per_img * self.batch_size_per_device * self.gpus
@@ -183,5 +187,5 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
 if __name__ == "__main__":
     run_cli(
         BEVDepthLightningModel,
-        "bev_depth_lss_convnext_640x1600_256x256_20e_cbgs_2key_da",
+        "bev_depth_lss_convnext_640x1600_256x256_20e_cbgs_2key_da_trainval",
     )
