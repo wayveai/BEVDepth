@@ -19,6 +19,8 @@ from bevdepth.datasets.nusc_det_dataset import NuscDetDataset, collate_fn
 from bevdepth.evaluators.det_evaluators import DetNuscEvaluator
 from bevdepth.models.base_bev_depth import BaseBEVDepth
 from bevdepth.utils.torch_dist import all_gather_object, get_rank, synchronize
+from bevdepth.exps.base_cli import bevdepth_root
+
 
 H = 900
 W = 1600
@@ -185,7 +187,7 @@ class BEVDepthLightningModel(LightningModule):
     def __init__(
         self,
         gpus: int = 1,
-        data_root="data/nuScenes",
+        data_root=os.path.join(bevdepth_root, "data", "nuScenes"),
         eval_interval=1,
         batch_size_per_device=8,
         class_names=CLASSES,
@@ -193,7 +195,7 @@ class BEVDepthLightningModel(LightningModule):
         head_conf=head_conf,
         ida_aug_conf=ida_aug_conf,
         bda_aug_conf=bda_aug_conf,
-        default_root_dir="./outputs/",
+        default_root_dir=os.path.join(bevdepth_root, "outputs"),
         **kwargs,
     ):
         super().__init__()

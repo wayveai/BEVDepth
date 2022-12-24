@@ -10,6 +10,8 @@ from bevdepth.utils.torch_dist import all_gather_object, synchronize
 
 from .nuscenes.base_exp import BEVDepthLightningModel
 
+bevdepth_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..")
+
 
 def run_cli(model_class=BEVDepthLightningModel, exp_name="base_exp", use_ema=False):
     parent_parser = ArgumentParser(add_help=False)
@@ -34,7 +36,7 @@ def run_cli(model_class=BEVDepthLightningModel, exp_name="base_exp", use_ema=Fal
     )
     parent_parser.add_argument("--ckpt_path", type=str)
     parser = BEVDepthLightningModel.add_model_specific_args(parent_parser)
-    training_artifacts_root_dir = os.path.join("./outputs/", exp_name)
+    training_artifacts_root_dir = os.path.join(bevdepth_root, "outputs", exp_name)
     parser.set_defaults(
         profiler="simple",
         deterministic=False,

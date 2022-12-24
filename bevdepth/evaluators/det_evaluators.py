@@ -9,6 +9,7 @@ import numpy as np
 import pyquaternion
 from nuscenes.utils.data_classes import Box
 from pyquaternion import Quaternion
+from bevdepth.exps.base_cli import bevdepth_root
 
 __all__ = ["DetNuscEvaluator"]
 
@@ -39,7 +40,7 @@ class DetNuscEvaluator:
         self,
         class_names,
         eval_version="detection_cvpr_2019",
-        data_root="./data/nuScenes",
+        data_root=os.path.join(bevdepth_root, "data", "nuScenes"),
         version="v1.0-trainval",
         modality=dict(
             use_lidar=False,
