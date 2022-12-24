@@ -19,8 +19,10 @@ from bevdepth.datasets.nusc_det_dataset import NuscDetDataset, collate_fn
 from bevdepth.evaluators.det_evaluators import DetNuscEvaluator
 from bevdepth.models.base_bev_depth import BaseBEVDepth
 from bevdepth.utils.torch_dist import all_gather_object, get_rank, synchronize
-from bevdepth.exps.base_cli import bevdepth_root
 
+bevdepth_root = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "..", "..", ".."
+)
 
 H = 900
 W = 1600
