@@ -436,7 +436,7 @@ class NuscDetDataset(Dataset):
                 )
                 # img = Image.fromarray(img)
                 w, x, y, z = cam_info[cam]["calibrated_sensor"]["rotation"]
-                # sweep sensor to sweep ego
+                # sweep sensor to sweep ego (g_vs_cs)
                 sweepsensor2sweepego_rot = torch.Tensor(
                     Quaternion(w, x, y, z).rotation_matrix
                 )
@@ -447,7 +447,7 @@ class NuscDetDataset(Dataset):
                 sweepsensor2sweepego[3, 3] = 1
                 sweepsensor2sweepego[:3, :3] = sweepsensor2sweepego_rot
                 sweepsensor2sweepego[:3, -1] = sweepsensor2sweepego_tran
-                # sweep ego to global
+                # sweep ego to global (g_w_vs)
                 w, x, y, z = cam_info[cam]["ego_pose"]["rotation"]
                 sweepego2global_rot = torch.Tensor(
                     Quaternion(w, x, y, z).rotation_matrix
@@ -460,7 +460,7 @@ class NuscDetDataset(Dataset):
                 sweepego2global[:3, :3] = sweepego2global_rot
                 sweepego2global[:3, -1] = sweepego2global_tran
 
-                # global sensor to cur ego
+                # global sensor to cur ego (g_vk_w)
                 w, x, y, z = key_info[cam]["ego_pose"]["rotation"]
                 keyego2global_rot = torch.Tensor(Quaternion(w, x, y, z).rotation_matrix)
                 keyego2global_tran = torch.Tensor(
@@ -472,7 +472,7 @@ class NuscDetDataset(Dataset):
                 keyego2global[:3, -1] = keyego2global_tran
                 global2keyego = keyego2global.inverse()
 
-                # cur ego to sensor
+                # cur ego to sensor (g_ck_vk)
                 w, x, y, z = key_info[cam]["calibrated_sensor"]["rotation"]
                 keysensor2keyego_rot = torch.Tensor(
                     Quaternion(w, x, y, z).rotation_matrix
@@ -485,15 +485,16 @@ class NuscDetDataset(Dataset):
                 keysensor2keyego[:3, :3] = keysensor2keyego_rot
                 keysensor2keyego[:3, -1] = keysensor2keyego_tran
                 keyego2keysensor = keysensor2keyego.inverse()
+
                 keysensor2sweepsensor = (
                     keyego2keysensor
                     @ global2keyego
                     @ sweepego2global
                     @ sweepsensor2sweepego
-                ).inverse()
+                ).inverse()  # g_ck_cs = g_ck_vk @ g_vk_w @ g_w_vs @ g_vs_cs
                 sweepsensor2keyego = (
                     global2keyego @ sweepego2global @ sweepsensor2sweepego
-                )
+                )  # g_vk_cs = g_vk_w @ g_w_vs @ g_vs_cs
                 sensor2ego_mats.append(sweepsensor2keyego)
                 sensor2sensor_mats.append(keysensor2sweepsensor)
                 intrin_mat = torch.zeros((4, 4))

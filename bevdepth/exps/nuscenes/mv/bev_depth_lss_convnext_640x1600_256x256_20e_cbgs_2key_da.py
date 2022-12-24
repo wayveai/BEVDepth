@@ -10,9 +10,9 @@ DONE:
     - out_size_factor (in bbox_coder, train_cfg and test_cfg)
 - ConvNeXt-base backbone (img_backbone)
 - DCN centerhead 
-- total batch size 64
 
 TODO:
+- total batch size 64
 - use both train and val set for training
 - data augmentation by randomly sampling time intervals in previous frames    
 """
@@ -183,5 +183,5 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
 if __name__ == "__main__":
     run_cli(
         BEVDepthLightningModel,
-        "bev_depth_lss_convnext_640x1600_128x128_20e_cbgs_2key_da",
+        "bev_depth_lss_convnext_640x1600_256x256_20e_cbgs_2key_da",
     )
