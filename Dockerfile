@@ -4,20 +4,6 @@ FROM nvidia/cuda:11.0.3-cudnn8-devel-ubuntu18.04
 ENV PYTHON_VERSION=3.8
 
 # -------------------------
-# TODO: AZURE credentials
-# -------------------------
-
-
-# -------------------------
-# TODO: W&B credentials
-# -------------------------
-# ARG WANDB_ENTITY
-# ENV WANDB_ENTITY=${WANDB_ENTITY}
-
-# ARG WANDB_API_KEY
-# ENV WANDB_API_KEY=${WANDB_API_KEY}
-
-# -------------------------
 # Install core APT packages (can be simplified)
 # -------------------------
 ENV DEBIAN_FRONTEND=noninteractive
@@ -47,7 +33,7 @@ RUN apt-get update && apt-get install -y \
 # Install BEVDepth requirements
 # https://github.com/wayveai/BEVDepth/blob/main/README.md#installation
 # -------------------------
-WORKDIR /home
+WORKDIR /
 
 # Upgrade pip
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
@@ -67,6 +53,7 @@ RUN pip install \
     setuptools \
     tensorboardX \ 
     wandb \
+    ipdb \ 
     pytorch-lightning==1.5.10 \ 
     torchmetrics==0.10.3
 
@@ -85,19 +72,11 @@ RUN git clone -b francis/dev https://github.com/wayveai/BEVDepth.git && \
     cd BEVDepth && \
     python setup.py develop
 
-
-# -------------------------
-# TODO: Setup nuScenes dataset (download nuscenes dataset from Azure if needed)  
-# -------------------------
-
-# Install azcopy 
-# Use azcopy to fetch the dataset 
-
 #-----------------------
 # Set up final work directory
 #-----------------------
-WORKDIR /home/BEVDepth
-ENV PYTHONPATH "${PYTHONPATH}:/home/BEVDepth"
+WORKDIR /BEVDepth
+ENV PYTHONPATH "${PYTHONPATH}:/BEVDepth"
 
 # For debugging
 # download a pretrained checkpoint and run eval script to test if everything works

@@ -24,6 +24,20 @@ BEVStereo is a new multi-view 3D object detector using temporal stereo to enhanc
 
 
 ## Quick Start
+### Run in docker 
+
+```
+docker build -t bevdepth -f Dockerfile . 
+
+# the CMD in Dockerfile is set to run the eval script as default,
+# but here we overwrite it with `/bin/bash` so that we can enter the container interactively.
+docker run -it --rm --name bevdepth \
+--ipc=host \
+-v [PATH_TO_YOUR_NUSCENES_DATASET]:/nuscenes \
+bevdepth /bin/bash 
+```
+
+
 ### Installation
 **Step 0.** Install requirements (make sure to install a torch version that supports your CUDA version).
 ```shell
