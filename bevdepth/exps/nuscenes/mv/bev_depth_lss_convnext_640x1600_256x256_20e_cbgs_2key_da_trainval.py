@@ -16,6 +16,7 @@ DONE:
 TODO:
 - data augmentation by randomly sampling time intervals in previous frames    
 """
+import os
 import torch
 from torch.optim.lr_scheduler import MultiStepLR
 
@@ -41,7 +42,7 @@ convnext_arch_to_params = {
         "feature_channels": [128, 256, 512, 1024],
     },
 }
-convnext_arch = "small"
+convnext_arch = "base"
 
 
 # https://mmclassification.readthedocs.io/en/dev-1.x/papers/convnext.html
