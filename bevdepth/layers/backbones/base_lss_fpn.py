@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from mmcv.cnn import build_conv_layer
 from mmdet3d.models import build_neck
-from mmdet.models import build_backbone
+from mmdet.registry import MODELS
 from mmdet.models.backbones.resnet import BasicBlock
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
@@ -11,23 +11,23 @@ from torch.cuda.amp.autocast_mode import autocast
 try:
     from bevdepth.ops.voxel_pooling import voxel_pooling
 except ImportError:
-    print('Import VoxelPooling fail.')
+    print("Import VoxelPooling fail.")
 
-__all__ = ['BaseLSSFPN']
+__all__ = ["BaseLSSFPN"]
 
 
 class _ASPPModule(nn.Module):
-
-    def __init__(self, inplanes, planes, kernel_size, padding, dilation,
-                 BatchNorm):
+    def __init__(self, inplanes, planes, kernel_size, padding, dilation, BatchNorm):
         super(_ASPPModule, self).__init__()
-        self.atrous_conv = nn.Conv2d(inplanes,
-                                     planes,
-                                     kernel_size=kernel_size,
-                                     stride=1,
-                                     padding=padding,
-                                     dilation=dilation,
-                                     bias=False)
+        self.atrous_conv = nn.Conv2d(
+            inplanes,
+            planes,
+            kernel_size=kernel_size,
+            stride=1,
+            padding=padding,
+            dilation=dilation,
+            bias=False,
+        )
         self.bn = BatchNorm(planes)
         self.relu = nn.ReLU()
 
@@ -49,36 +49,43 @@ class _ASPPModule(nn.Module):
 
 
 class ASPP(nn.Module):
-
     def __init__(self, inplanes, mid_channels=256, BatchNorm=nn.BatchNorm2d):
         super(ASPP, self).__init__()
 
         dilations = [1, 6, 12, 18]
 
-        self.aspp1 = _ASPPModule(inplanes,
-                                 mid_channels,
-                                 1,
-                                 padding=0,
-                                 dilation=dilations[0],
-                                 BatchNorm=BatchNorm)
-        self.aspp2 = _ASPPModule(inplanes,
-                                 mid_channels,
-                                 3,
-                                 padding=dilations[1],
-                                 dilation=dilations[1],
-                                 BatchNorm=BatchNorm)
-        self.aspp3 = _ASPPModule(inplanes,
-                                 mid_channels,
-                                 3,
-                                 padding=dilations[2],
-                                 dilation=dilations[2],
-                                 BatchNorm=BatchNorm)
-        self.aspp4 = _ASPPModule(inplanes,
-                                 mid_channels,
-                                 3,
-                                 padding=dilations[3],
-                                 dilation=dilations[3],
-                                 BatchNorm=BatchNorm)
+        self.aspp1 = _ASPPModule(
+            inplanes,
+            mid_channels,
+            1,
+            padding=0,
+            dilation=dilations[0],
+            BatchNorm=BatchNorm,
+        )
+        self.aspp2 = _ASPPModule(
+            inplanes,
+            mid_channels,
+            3,
+            padding=dilations[1],
+            dilation=dilations[1],
+            BatchNorm=BatchNorm,
+        )
+        self.aspp3 = _ASPPModule(
+            inplanes,
+            mid_channels,
+            3,
+            padding=dilations[2],
+            dilation=dilations[2],
+            BatchNorm=BatchNorm,
+        )
+        self.aspp4 = _ASPPModule(
+            inplanes,
+            mid_channels,
+            3,
+            padding=dilations[3],
+            dilation=dilations[3],
+            BatchNorm=BatchNorm,
+        )
 
         self.global_avg_pool = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
@@ -86,10 +93,7 @@ class ASPP(nn.Module):
             BatchNorm(mid_channels),
             nn.ReLU(),
         )
-        self.conv1 = nn.Conv2d(int(mid_channels * 5),
-                               mid_channels,
-                               1,
-                               bias=False)
+        self.conv1 = nn.Conv2d(int(mid_channels * 5), mid_channels, 1, bias=False)
         self.bn1 = BatchNorm(mid_channels)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
@@ -101,10 +105,7 @@ class ASPP(nn.Module):
         x3 = self.aspp3(x)
         x4 = self.aspp4(x)
         x5 = self.global_avg_pool(x)
-        x5 = F.interpolate(x5,
-                           size=x4.size()[2:],
-                           mode='bilinear',
-                           align_corners=True)
+        x5 = F.interpolate(x5, size=x4.size()[2:], mode="bilinear", align_corners=True)
         x = torch.cat((x1, x2, x3, x4, x5), dim=1)
 
         x = self.conv1(x)
@@ -123,13 +124,14 @@ class ASPP(nn.Module):
 
 
 class Mlp(nn.Module):
-
-    def __init__(self,
-                 in_features,
-                 hidden_features=None,
-                 out_features=None,
-                 act_layer=nn.ReLU,
-                 drop=0.0):
+    def __init__(
+        self,
+        in_features,
+        hidden_features=None,
+        out_features=None,
+        act_layer=nn.ReLU,
+        drop=0.0,
+    ):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -149,7 +151,6 @@ class Mlp(nn.Module):
 
 
 class SELayer(nn.Module):
-
     def __init__(self, channels, act_layer=nn.ReLU, gate_layer=nn.Sigmoid):
         super().__init__()
         self.conv_reduce = nn.Conv2d(channels, channels, 1, bias=True)
@@ -165,24 +166,16 @@ class SELayer(nn.Module):
 
 
 class DepthNet(nn.Module):
-
-    def __init__(self, in_channels, mid_channels, context_channels,
-                 depth_channels):
+    def __init__(self, in_channels, mid_channels, context_channels, depth_channels):
         super(DepthNet, self).__init__()
         self.reduce_conv = nn.Sequential(
-            nn.Conv2d(in_channels,
-                      mid_channels,
-                      kernel_size=3,
-                      stride=1,
-                      padding=1),
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
         )
-        self.context_conv = nn.Conv2d(mid_channels,
-                                      context_channels,
-                                      kernel_size=1,
-                                      stride=1,
-                                      padding=0)
+        self.context_conv = nn.Conv2d(
+            mid_channels, context_channels, kernel_size=1, stride=1, padding=0
+        )
         self.bn = nn.BatchNorm1d(27)
         self.depth_mlp = Mlp(27, mid_channels, mid_channels)
         self.depth_se = SELayer(mid_channels)  # NOTE: add camera-aware
@@ -193,30 +186,31 @@ class DepthNet(nn.Module):
             BasicBlock(mid_channels, mid_channels),
             BasicBlock(mid_channels, mid_channels),
             ASPP(mid_channels, mid_channels),
-            build_conv_layer(cfg=dict(
-                type='DCN',
-                in_channels=mid_channels,
-                out_channels=mid_channels,
-                kernel_size=3,
-                padding=1,
-                groups=4,
-                im2col_step=128,
-            )),
-            nn.Conv2d(mid_channels,
-                      depth_channels,
-                      kernel_size=1,
-                      stride=1,
-                      padding=0),
+            build_conv_layer(
+                cfg=dict(
+                    type="DCN",
+                    in_channels=mid_channels,
+                    out_channels=mid_channels,
+                    kernel_size=3,
+                    padding=1,
+                    groups=4,
+                    im2col_step=128,
+                )
+            ),
+            nn.Conv2d(mid_channels, depth_channels, kernel_size=1, stride=1, padding=0),
         )
 
     def forward(self, x, mats_dict):
-        intrins = mats_dict['intrin_mats'][:, 0:1, ..., :3, :3]
+        intrins = mats_dict["intrin_mats"][:, 0:1, ..., :3, :3]
         batch_size = intrins.shape[0]
         num_cams = intrins.shape[2]
-        ida = mats_dict['ida_mats'][:, 0:1, ...]
-        sensor2ego = mats_dict['sensor2ego_mats'][:, 0:1, ..., :3, :]
-        bda = mats_dict['bda_mat'].view(batch_size, 1, 1, 4,
-                                        4).repeat(1, 1, num_cams, 1, 1)
+        ida = mats_dict["ida_mats"][:, 0:1, ...]
+        sensor2ego = mats_dict["sensor2ego_mats"][:, 0:1, ..., :3, :]
+        bda = (
+            mats_dict["bda_mat"]
+            .view(batch_size, 1, 1, 4, 4)
+            .repeat(1, 1, num_cams, 1, 1)
+        )
         mlp_input = torch.cat(
             [
                 torch.stack(
@@ -263,42 +257,50 @@ class DepthAggregation(nn.Module):
         super(DepthAggregation, self).__init__()
 
         self.reduce_conv = nn.Sequential(
-            nn.Conv2d(in_channels,
-                      mid_channels,
-                      kernel_size=3,
-                      stride=1,
-                      padding=1,
-                      bias=False),
+            nn.Conv2d(
+                in_channels,
+                mid_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
         )
 
         self.conv = nn.Sequential(
-            nn.Conv2d(mid_channels,
-                      mid_channels,
-                      kernel_size=3,
-                      stride=1,
-                      padding=1,
-                      bias=False),
+            nn.Conv2d(
+                mid_channels,
+                mid_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels,
-                      mid_channels,
-                      kernel_size=3,
-                      stride=1,
-                      padding=1,
-                      bias=False),
+            nn.Conv2d(
+                mid_channels,
+                mid_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
         )
 
         self.out_conv = nn.Sequential(
-            nn.Conv2d(mid_channels,
-                      out_channels,
-                      kernel_size=3,
-                      stride=1,
-                      padding=1,
-                      bias=True),
+            nn.Conv2d(
+                mid_channels,
+                out_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=True,
+            ),
             # nn.BatchNorm3d(out_channels),
             # nn.ReLU(inplace=True),
         )
@@ -312,19 +314,20 @@ class DepthAggregation(nn.Module):
 
 
 class BaseLSSFPN(nn.Module):
-
-    def __init__(self,
-                 x_bound,
-                 y_bound,
-                 z_bound,
-                 d_bound,
-                 final_dim,
-                 downsample_factor,
-                 output_channels,
-                 img_backbone_conf,
-                 img_neck_conf,
-                 depth_net_conf,
-                 use_da=False):
+    def __init__(
+        self,
+        x_bound,
+        y_bound,
+        z_bound,
+        d_bound,
+        final_dim,
+        downsample_factor,
+        output_channels,
+        img_backbone_conf,
+        img_neck_conf,
+        depth_net_conf,
+        use_da=False,
+    ):
         """Modified from `https://github.com/nv-tlabs/lift-splat-shoot`.
 
         Args:
@@ -349,21 +352,24 @@ class BaseLSSFPN(nn.Module):
         self.output_channels = output_channels
 
         self.register_buffer(
-            'voxel_size',
-            torch.Tensor([row[2] for row in [x_bound, y_bound, z_bound]]))
+            "voxel_size", torch.Tensor([row[2] for row in [x_bound, y_bound, z_bound]])
+        )
         self.register_buffer(
-            'voxel_coord',
-            torch.Tensor([
-                row[0] + row[2] / 2.0 for row in [x_bound, y_bound, z_bound]
-            ]))
+            "voxel_coord",
+            torch.Tensor(
+                [row[0] + row[2] / 2.0 for row in [x_bound, y_bound, z_bound]]
+            ),
+        )
         self.register_buffer(
-            'voxel_num',
-            torch.LongTensor([(row[1] - row[0]) / row[2]
-                              for row in [x_bound, y_bound, z_bound]]))
-        self.register_buffer('frustum', self.create_frustum())
+            "voxel_num",
+            torch.LongTensor(
+                [(row[1] - row[0]) / row[2] for row in [x_bound, y_bound, z_bound]]
+            ),
+        )
+        self.register_buffer("frustum", self.create_frustum())
         self.depth_channels, _, _, _ = self.frustum.shape
 
-        self.img_backbone = build_backbone(img_backbone_conf)
+        self.img_backbone = MODELS.build(img_backbone_conf)
         self.img_neck = build_neck(img_neck_conf)
         self.depth_net = self._configure_depth_net(depth_net_conf)
 
@@ -371,33 +377,37 @@ class BaseLSSFPN(nn.Module):
         self.img_backbone.init_weights()
         self.use_da = use_da
         if self.use_da:
-            self.depth_aggregation_net = self._configure_depth_aggregation_net(
-            )
+            self.depth_aggregation_net = self._configure_depth_aggregation_net()
 
     def _configure_depth_net(self, depth_net_conf):
         return DepthNet(
-            depth_net_conf['in_channels'],
-            depth_net_conf['mid_channels'],
+            depth_net_conf["in_channels"],
+            depth_net_conf["mid_channels"],
             self.output_channels,
             self.depth_channels,
         )
 
     def _configure_depth_aggregation_net(self):
         """build pixel cloud feature extractor"""
-        return DepthAggregation(self.output_channels, self.output_channels,
-                                self.output_channels)
+        return DepthAggregation(
+            self.output_channels, self.output_channels, self.output_channels
+        )
 
     def _forward_voxel_net(self, img_feat_with_depth):
         if self.use_da:
             # BEVConv2D [n, c, d, h, w] -> [n, h, c, w, d]
             img_feat_with_depth = img_feat_with_depth.permute(
-                0, 3, 1, 4,
-                2).contiguous()  # [n, c, d, h, w] -> [n, h, c, w, d]
+                0, 3, 1, 4, 2
+            ).contiguous()  # [n, c, d, h, w] -> [n, h, c, w, d]
             n, h, c, w, d = img_feat_with_depth.shape
             img_feat_with_depth = img_feat_with_depth.view(-1, c, w, d)
             img_feat_with_depth = (
-                self.depth_aggregation_net(img_feat_with_depth).view(
-                    n, h, c, w, d).permute(0, 2, 4, 1, 3).contiguous().float())
+                self.depth_aggregation_net(img_feat_with_depth)
+                .view(n, h, c, w, d)
+                .permute(0, 2, 4, 1, 3)
+                .contiguous()
+                .float()
+            )
         return img_feat_with_depth
 
     def create_frustum(self):
@@ -405,15 +415,22 @@ class BaseLSSFPN(nn.Module):
         # make grid in image plane
         ogfH, ogfW = self.final_dim
         fH, fW = ogfH // self.downsample_factor, ogfW // self.downsample_factor
-        d_coords = torch.arange(*self.d_bound,
-                                dtype=torch.float).view(-1, 1,
-                                                        1).expand(-1, fH, fW)
+        d_coords = (
+            torch.arange(*self.d_bound, dtype=torch.float)
+            .view(-1, 1, 1)
+            .expand(-1, fH, fW)
+        )
         D, _, _ = d_coords.shape
-        x_coords = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(
-            1, 1, fW).expand(D, fH, fW)
-        y_coords = torch.linspace(0, ogfH - 1, fH,
-                                  dtype=torch.float).view(1, fH,
-                                                          1).expand(D, fH, fW)
+        x_coords = (
+            torch.linspace(0, ogfW - 1, fW, dtype=torch.float)
+            .view(1, 1, fW)
+            .expand(D, fH, fW)
+        )
+        y_coords = (
+            torch.linspace(0, ogfH - 1, fH, dtype=torch.float)
+            .view(1, fH, 1)
+            .expand(D, fH, fW)
+        )
         paddings = torch.ones_like(d_coords)
 
         # D x H x W x 3
@@ -443,15 +460,21 @@ class BaseLSSFPN(nn.Module):
         points = ida_mat.inverse().matmul(points.unsqueeze(-1))
         # cam_to_ego
         points = torch.cat(
-            (points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
-             points[:, :, :, :, :, 2:]), 5)
+            (
+                points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
+                points[:, :, :, :, :, 2:],
+            ),
+            5,
+        )
 
         combine = sensor2ego_mat.matmul(torch.inverse(intrin_mat))
-        points = combine.view(batch_size, num_cams, 1, 1, 1, 4,
-                              4).matmul(points)
+        points = combine.view(batch_size, num_cams, 1, 1, 1, 4, 4).matmul(points)
         if bda_mat is not None:
-            bda_mat = bda_mat.unsqueeze(1).repeat(1, num_cams, 1, 1).view(
-                batch_size, num_cams, 1, 1, 1, 4, 4)
+            bda_mat = (
+                bda_mat.unsqueeze(1)
+                .repeat(1, num_cams, 1, 1)
+                .view(batch_size, num_cams, 1, 1, 1, 4, 4)
+            )
             points = (bda_mat @ points).squeeze(-1)
         else:
             points = points.squeeze(-1)
@@ -461,22 +484,26 @@ class BaseLSSFPN(nn.Module):
         """Get feature maps from images."""
         batch_size, num_sweeps, num_cams, num_channels, imH, imW = imgs.shape
 
-        imgs = imgs.flatten().view(batch_size * num_sweeps * num_cams,
-                                   num_channels, imH, imW)
+        imgs = imgs.flatten().view(
+            batch_size * num_sweeps * num_cams, num_channels, imH, imW
+        )
         img_feats = self.img_neck(self.img_backbone(imgs))[0]
-        img_feats = img_feats.reshape(batch_size, num_sweeps, num_cams,
-                                      img_feats.shape[1], img_feats.shape[2],
-                                      img_feats.shape[3])
+        img_feats = img_feats.reshape(
+            batch_size,
+            num_sweeps,
+            num_cams,
+            img_feats.shape[1],
+            img_feats.shape[2],
+            img_feats.shape[3],
+        )
         return img_feats
 
     def _forward_depth_net(self, feat, mats_dict):
         return self.depth_net(feat, mats_dict)
 
-    def _forward_single_sweep(self,
-                              sweep_index,
-                              sweep_imgs,
-                              mats_dict,
-                              is_return_depth=False):
+    def _forward_single_sweep(
+        self, sweep_index, sweep_imgs, mats_dict, is_return_depth=False
+    ):
         """Forward function for single sweep.
 
         Args:
@@ -501,21 +528,29 @@ class BaseLSSFPN(nn.Module):
         Returns:
             Tensor: BEV feature map.
         """
-        batch_size, num_sweeps, num_cams, num_channels, img_height, \
-            img_width = sweep_imgs.shape
+        (
+            batch_size,
+            num_sweeps,
+            num_cams,
+            num_channels,
+            img_height,
+            img_width,
+        ) = sweep_imgs.shape
         img_feats = self.get_cam_feats(sweep_imgs)
         source_features = img_feats[:, 0, ...]
         depth_feature = self._forward_depth_net(
-            source_features.reshape(batch_size * num_cams,
-                                    source_features.shape[2],
-                                    source_features.shape[3],
-                                    source_features.shape[4]),
+            source_features.reshape(
+                batch_size * num_cams,
+                source_features.shape[2],
+                source_features.shape[3],
+                source_features.shape[4],
+            ),
             mats_dict,
         )
-        depth = depth_feature[:, :self.depth_channels].softmax(1)
-        img_feat_with_depth = depth.unsqueeze(
-            1) * depth_feature[:, self.depth_channels:(
-                self.depth_channels + self.output_channels)].unsqueeze(2)
+        depth = depth_feature[:, : self.depth_channels].softmax(1)
+        img_feat_with_depth = depth.unsqueeze(1) * depth_feature[
+            :, self.depth_channels : (self.depth_channels + self.output_channels)
+        ].unsqueeze(2)
 
         img_feat_with_depth = self._forward_voxel_net(img_feat_with_depth)
 
@@ -528,25 +563,23 @@ class BaseLSSFPN(nn.Module):
             img_feat_with_depth.shape[4],
         )
         geom_xyz = self.get_geometry(
-            mats_dict['sensor2ego_mats'][:, sweep_index, ...],
-            mats_dict['intrin_mats'][:, sweep_index, ...],
-            mats_dict['ida_mats'][:, sweep_index, ...],
-            mats_dict.get('bda_mat', None),
+            mats_dict["sensor2ego_mats"][:, sweep_index, ...],
+            mats_dict["intrin_mats"][:, sweep_index, ...],
+            mats_dict["ida_mats"][:, sweep_index, ...],
+            mats_dict.get("bda_mat", None),
         )
         img_feat_with_depth = img_feat_with_depth.permute(0, 1, 3, 4, 5, 2)
-        geom_xyz = ((geom_xyz - (self.voxel_coord - self.voxel_size / 2.0)) /
-                    self.voxel_size).int()
-        feature_map = voxel_pooling(geom_xyz, img_feat_with_depth.contiguous(),
-                                    self.voxel_num.cuda())
+        geom_xyz = (
+            (geom_xyz - (self.voxel_coord - self.voxel_size / 2.0)) / self.voxel_size
+        ).int()
+        feature_map = voxel_pooling(
+            geom_xyz, img_feat_with_depth.contiguous(), self.voxel_num.cuda()
+        )
         if is_return_depth:
             return feature_map.contiguous(), depth
         return feature_map.contiguous()
 
-    def forward(self,
-                sweep_imgs,
-                mats_dict,
-                timestamps=None,
-                is_return_depth=False):
+    def forward(self, sweep_imgs, mats_dict, timestamps=None, is_return_depth=False):
         """Forward function.
 
         Args:
@@ -571,28 +604,32 @@ class BaseLSSFPN(nn.Module):
         Return:
             Tensor: bev feature map.
         """
-        batch_size, num_sweeps, num_cams, num_channels, img_height, \
-            img_width = sweep_imgs.shape
+        (
+            batch_size,
+            num_sweeps,
+            num_cams,
+            num_channels,
+            img_height,
+            img_width,
+        ) = sweep_imgs.shape
 
         key_frame_res = self._forward_single_sweep(
-            0,
-            sweep_imgs[:, 0:1, ...],
-            mats_dict,
-            is_return_depth=is_return_depth)
+            0, sweep_imgs[:, 0:1, ...], mats_dict, is_return_depth=is_return_depth
+        )
         if num_sweeps == 1:
             return key_frame_res
 
-        key_frame_feature = key_frame_res[
-            0] if is_return_depth else key_frame_res
+        key_frame_feature = key_frame_res[0] if is_return_depth else key_frame_res
 
         ret_feature_list = [key_frame_feature]
         for sweep_index in range(1, num_sweeps):
             with torch.no_grad():
                 feature_map = self._forward_single_sweep(
                     sweep_index,
-                    sweep_imgs[:, sweep_index:sweep_index + 1, ...],
+                    sweep_imgs[:, sweep_index : sweep_index + 1, ...],
                     mats_dict,
-                    is_return_depth=False)
+                    is_return_depth=False,
+                )
                 ret_feature_list.append(feature_map)
 
         if is_return_depth:
