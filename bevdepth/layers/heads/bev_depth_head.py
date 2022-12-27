@@ -134,7 +134,7 @@ class BEVDepthHead(CenterHead):
             loss_bbox=loss_bbox,
             separate_head=separate_head,
         )
-        self.trunk = MODELS(bev_backbone_conf)
+        self.trunk = MODELS.build(bev_backbone_conf)
         self.trunk.init_weights()
         self.neck = build_neck(bev_neck_conf)
         self.neck.init_weights()
