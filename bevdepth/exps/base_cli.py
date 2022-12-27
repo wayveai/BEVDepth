@@ -11,7 +11,12 @@ from bevdepth.utils.torch_dist import all_gather_object, synchronize
 from bevdepth.exps.nuscenes.base_exp import BEVDepthLightningModel, bevdepth_root
 
 
-def run_cli(model_class=BEVDepthLightningModel, exp_name="base_exp", use_ema=False):
+def run_cli(
+    model_class=BEVDepthLightningModel,
+    exp_name="base_exp",
+    use_ema=False,
+    extra_trainer_config_args={},
+):
     parent_parser = ArgumentParser(add_help=False)
     parent_parser = pl.Trainer.add_argparse_args(parent_parser)
     parent_parser.add_argument(
@@ -35,14 +40,16 @@ def run_cli(model_class=BEVDepthLightningModel, exp_name="base_exp", use_ema=Fal
     parent_parser.add_argument("--ckpt_path", type=str)
     parser = BEVDepthLightningModel.add_model_specific_args(parent_parser)
     training_artifacts_root_dir = os.path.join(bevdepth_root, "outputs", exp_name)
+
     parser.set_defaults(
         profiler="simple",
         deterministic=False,
-        max_epochs=24,
+        max_epochs=extra_trainer_config_args.get("epochs", 24),
         accelerator="ddp",
         num_sanity_val_steps=0,
         gradient_clip_val=5,
         limit_val_batches=0,
+        limit_train_batches=extra_trainer_config_args.get("limit_train_batches", 1.0),
         enable_checkpointing=True,
         precision=16,
         default_root_dir=training_artifacts_root_dir,

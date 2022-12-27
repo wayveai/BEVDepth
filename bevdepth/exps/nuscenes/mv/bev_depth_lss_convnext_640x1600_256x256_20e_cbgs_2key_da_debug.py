@@ -173,9 +173,13 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
         self.model = BaseBEVDepth(
             self.backbone_conf, self.head_conf, is_train_depth=True
         )
+        # self.train_info_paths = [
+        #     os.path.join(self.data_root, "nuscenes_infos_train.pkl"),
+        #     os.path.join(self.data_root, "nuscenes_infos_val.pkl"),
+        # ]
+
         self.train_info_paths = [
-            os.path.join(self.data_root, "nuscenes_infos_train.pkl"),
-            os.path.join(self.data_root, "nuscenes_infos_val.pkl"),
+            os.path.join(self.data_root, "nuscenes_infos_mini_train.pkl"),
         ]
 
         # self.num_sweeps = 2
@@ -184,12 +188,13 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
     def configure_optimizers(self):
         lr = self.basic_lr_per_img * self.batch_size_per_device * self.gpus
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-3)
-        scheduler = MultiStepLR(optimizer, [16, 19])
+        scheduler = MultiStepLR(optimizer, [1])
         return [[optimizer], [scheduler]]
 
 
 if __name__ == "__main__":
     run_cli(
         BEVDepthLightningModel,
-        "bev_depth_lss_convnext_640x1600_256x256_20e_cbgs_2key_da_trainval",
+        "bev_depth_lss_convnext_640x1600_256x256_20e_cbgs_2key_da_debug",
+        extra_trainer_config_args={"epochs": 1, "limit_train_batches": 10},
     )
