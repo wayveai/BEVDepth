@@ -1,12 +1,10 @@
+from mmengine.structures import InstanceData
 from torch import nn
 
 from bevdepth.layers.backbones.base_lss_fpn import BaseLSSFPN
 from bevdepth.layers.heads.bev_depth_head import BEVDepthHead
 
-from mmengine.structures import InstanceData
-
-
-__all__ = ["BaseBEVDepth"]
+__all__ = ['BaseBEVDepth']
 
 
 class BaseBEVDepth(nn.Module):
@@ -56,9 +54,10 @@ class BaseBEVDepth(nn.Module):
             tuple(list[dict]): Output results for tasks.
         """
         if self.is_train_depth or self.training:
-            x, depth_pred = self.backbone(
-                x, mats_dict, timestamps, is_return_depth=True
-            )
+            x, depth_pred = self.backbone(x,
+                                          mats_dict,
+                                          timestamps,
+                                          is_return_depth=True)
             preds = self.head(x)
             return preds, depth_pred
         else:
@@ -86,13 +85,11 @@ class BaseBEVDepth(nn.Module):
         """
 
         # In mmdetection3d v1.1, the interface has changed
-        # see https://github.com/open-mmlab/mmdetection3d/blob/d7067e4430f4e99697b382b0e3ea5597af737a2c/mmdet3d/models/dense_heads/centerpoint_head.py#L398
-        return self.head.get_targets(
-            batch_gt_instances_3d=[
-                InstanceData(bboxes_3d=gt_box, labels_3d=gt_label)
-                for gt_box, gt_label in zip(gt_boxes, gt_labels)
-            ]
-        )
+        # see https://github.com/open-mmlab/mmdetection3d/blob/d7067e4430f4e99697b382b0e3ea5597af737a2c/mmdet3d/models/dense_heads/centerpoint_head.py#L398 # noqa
+        return self.head.get_targets(batch_gt_instances_3d=[
+            InstanceData(bboxes_3d=gt_box, labels_3d=gt_label)
+            for gt_box, gt_label in zip(gt_boxes, gt_labels)
+        ])
 
     def loss(self, targets, preds_dicts):
         """Loss function for BEVDepth.

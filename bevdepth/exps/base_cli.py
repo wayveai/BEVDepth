@@ -6,50 +6,56 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from bevdepth.callbacks.ema import EMACallback
+from bevdepth.exps.nuscenes.base_exp import (BEVDepthLightningModel,
+                                             bevdepth_root)
 from bevdepth.utils.torch_dist import all_gather_object, synchronize
-
-from bevdepth.exps.nuscenes.base_exp import BEVDepthLightningModel, bevdepth_root
 
 
 def run_cli(
     model_class=BEVDepthLightningModel,
-    exp_name="base_exp",
+    exp_name='base_exp',
     use_ema=False,
     extra_trainer_config_args={},
 ):
     parent_parser = ArgumentParser(add_help=False)
     parent_parser = pl.Trainer.add_argparse_args(parent_parser)
     parent_parser.add_argument(
-        "-e",
-        "--evaluate",
-        dest="evaluate",
-        action="store_true",
-        help="evaluate model on validation set",
+        '-e',
+        '--evaluate',
+        dest='evaluate',
+        action='store_true',
+        help='evaluate model on validation set',
     )
     parent_parser.add_argument(
-        "-p",
-        "--predict",
-        dest="predict",
-        action="store_true",
-        help="predict model on testing set",
+        '-p',
+        '--predict',
+        dest='predict',
+        action='store_true',
+        help='predict model on testing set',
     )
-    parent_parser.add_argument("-b", "--batch_size_per_device", type=int, default=1)
-    parent_parser.add_argument(
-        "--seed", type=int, default=0, help="seed for initializing training."
-    )
-    parent_parser.add_argument("--ckpt_path", type=str)
+    parent_parser.add_argument('-b',
+                               '--batch_size_per_device',
+                               type=int,
+                               default=1)
+    parent_parser.add_argument('--seed',
+                               type=int,
+                               default=0,
+                               help='seed for initializing training.')
+    parent_parser.add_argument('--ckpt_path', type=str)
     parser = BEVDepthLightningModel.add_model_specific_args(parent_parser)
-    training_artifacts_root_dir = os.path.join(bevdepth_root, "outputs", exp_name)
+    training_artifacts_root_dir = os.path.join(bevdepth_root, 'outputs',
+                                               exp_name)
 
     parser.set_defaults(
-        profiler="simple",
+        profiler='simple',
         deterministic=False,
-        max_epochs=extra_trainer_config_args.get("epochs", 24),
-        accelerator="ddp",
+        max_epochs=extra_trainer_config_args.get('epochs', 24),
+        accelerator='ddp',
         num_sanity_val_steps=0,
         gradient_clip_val=5,
         limit_val_batches=0,
-        limit_train_batches=extra_trainer_config_args.get("limit_train_batches", 1.0),
+        limit_train_batches=extra_trainer_config_args.get(
+            'limit_train_batches', 1.0),
         enable_checkpointing=True,
         precision=16,
         default_root_dir=training_artifacts_root_dir,
@@ -62,14 +68,15 @@ def run_cli(
 
     callbacks = [
         ModelCheckpoint(
-            dirpath=os.path.join(training_artifacts_root_dir, "checkpoints"),
+            dirpath=os.path.join(training_artifacts_root_dir, 'checkpoints'),
             save_last=False,
             save_top_k=-1,
         )
     ]
     if use_ema:
         train_dataloader = model.train_dataloader()
-        ema_callback = EMACallback(len(train_dataloader.dataset) * args.max_epochs)
+        ema_callback = EMACallback(
+            len(train_dataloader.dataset) * args.max_epochs)
         callbacks = callbacks.append(ema_callback)
 
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks)
@@ -87,13 +94,11 @@ def run_cli(
         synchronize()
         len_dataset = len(model.test_dataloader().dataset)
         all_pred_results = sum(
-            map(list, zip(*all_gather_object(all_pred_results))), []
-        )[:len_dataset]
-        all_img_metas = sum(map(list, zip(*all_gather_object(all_img_metas))), [])[
-            :len_dataset
-        ]
-        model.evaluator._format_bbox(
-            all_pred_results, all_img_metas, os.path.dirname(args.ckpt_path)
-        )
+            map(list, zip(*all_gather_object(all_pred_results))),
+            [])[:len_dataset]
+        all_img_metas = sum(map(list, zip(*all_gather_object(all_img_metas))),
+                            [])[:len_dataset]
+        model.evaluator._format_bbox(all_pred_results, all_img_metas,
+                                     os.path.dirname(args.ckpt_path))
     else:
         trainer.fit(model)

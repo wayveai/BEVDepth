@@ -25,14 +25,15 @@ BEVStereo is a new multi-view 3D object detector using temporal stereo to enhanc
 
 ## Quick Start
 ### Installation
-**Step 0.** Install requirements (make sure to install a torch version that supports your CUDA version).
-```shell
-pip install -r requirements.txt
-```
+**Step 0.** Install [pytorch](https://pytorch.org/)(v1.9.0).
 
 **Step 1.** Install [MMDetection3D](https://github.com/open-mmlab/mmdetection3d)(v1.0.0rc4).
 
-**Step 2.** Install BEVDepth(gpu required).
+**Step 2.** Install requirements.
+```shell
+pip install -r requirements.txt
+```
+**Step 3.** Install BEVDepth(gpu required).
 ```shell
 python setup.py develop
 ```
@@ -40,9 +41,9 @@ python setup.py develop
 ### Data preparation
 **Step 0.** Download nuScenes official dataset.
 
-**Step 1.** Symlink the dataset root to `./data/`. 
+**Step 1.** Symlink the dataset root to `./data/`.
 ```
-ln -s /mnt/remote/image_storage/experimental/nuscenes data/nuScenes
+ln -s [nuscenes root] ./data/
 ```
 The directory will be as follows.
 ```
