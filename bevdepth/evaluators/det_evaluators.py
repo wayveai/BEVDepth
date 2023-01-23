@@ -37,8 +37,8 @@ class DetNuscEvaluator:
     def __init__(
         self,
         class_names,
+        data_root,
         eval_version='detection_cvpr_2019',
-        data_root='./data/nuScenes',
         version='v1.0-trainval',
         modality=dict(
             use_lidar=False,
@@ -48,6 +48,10 @@ class DetNuscEvaluator:
             use_external=False,
         ),
         output_dir=None,
+        eval_set_map={
+            'v1.0-mini': 'mini_val',
+            'v1.0-trainval': 'val'
+        }  # noqa
     ) -> None:
         self.eval_version = eval_version
         self.data_root = data_root
@@ -59,6 +63,7 @@ class DetNuscEvaluator:
         self.class_names = class_names
         self.modality = modality
         self.output_dir = output_dir
+        self.eval_set_map = eval_set_map
 
     def _evaluate_single(self,
                          result_path,
@@ -85,15 +90,11 @@ class DetNuscEvaluator:
         nusc = NuScenes(version=self.version,
                         dataroot=self.data_root,
                         verbose=False)
-        eval_set_map = {
-            'v1.0-mini': 'mini_val',
-            'v1.0-trainval': 'val',
-        }
         nusc_eval = NuScenesEval(
             nusc,
             config=self.eval_detection_configs,
             result_path=result_path,
-            eval_set=eval_set_map[self.version],
+            eval_set=self.eval_set_map[self.version],
             output_dir=output_dir,
             verbose=False,
         )

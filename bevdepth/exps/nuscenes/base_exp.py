@@ -21,6 +21,9 @@ from bevdepth.utils.torch_dist import all_gather_object, get_rank, synchronize
 
 bevdepth_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              '..', '..')
+data_root = os.path.join(bevdepth_root, 'data')
+nusc_data_root = os.path.join(data_root, 'nuScenes')
+wayve_data_root = os.path.join(data_root, 'wayve-scenes')
 
 H = 900
 W = 1600
@@ -198,7 +201,7 @@ class BEVDepthLightningModel(LightningModule):
     def __init__(
             self,
             gpus: int = 1,
-            data_root=os.path.join(bevdepth_root, 'data', 'nuScenes'),
+            data_root=nusc_data_root,
             eval_interval=1,
             batch_size_per_device=8,
             class_names=CLASSES,
@@ -225,7 +228,8 @@ class BEVDepthLightningModel(LightningModule):
         mmengine.mkdir_or_exist(default_root_dir)
         self.default_root_dir = default_root_dir
         self.evaluator = DetNuscEvaluator(class_names=self.class_names,
-                                          output_dir=self.default_root_dir)
+                                          output_dir=self.default_root_dir,
+                                          data_root=self.data_root)
         self.model = BaseBEVDepth(self.backbone_conf,
                                   self.head_conf,
                                   is_train_depth=True)

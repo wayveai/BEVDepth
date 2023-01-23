@@ -167,6 +167,7 @@ def map_pointcloud_to_image(
     # transformed via global to the image plane.
     # First step: transform the pointcloud to the ego vehicle
     # frame for the timestamp of the sweep.
+    # p_v_{t_l} = g_v_l @ p_l
 
     lidar_points = LidarPointCloud(lidar_points.T)
     lidar_points.rotate(
@@ -174,15 +175,18 @@ def map_pointcloud_to_image(
     lidar_points.translate(np.array(lidar_calibrated_sensor['translation']))
 
     # Second step: transform from ego to the global frame.
+    # p_w = g_w_v_{t_l} @ p_v_{t_l}
     lidar_points.rotate(Quaternion(lidar_ego_pose['rotation']).rotation_matrix)
     lidar_points.translate(np.array(lidar_ego_pose['translation']))
 
     # Third step: transform from global into the ego vehicle
     # frame for the timestamp of the image.
+    # p_v_{t_c} = (g_w_v_{t_c})^-1 @ p_w
     lidar_points.translate(-np.array(cam_ego_pose['translation']))
     lidar_points.rotate(Quaternion(cam_ego_pose['rotation']).rotation_matrix.T)
 
     # Fourth step: transform from ego into the camera.
+    # p_c = p_v_c ^ -1 @ p_v_{t_c}
     lidar_points.translate(-np.array(cam_calibrated_sensor['translation']))
     lidar_points.rotate(
         Quaternion(cam_calibrated_sensor['rotation']).rotation_matrix.T)
@@ -315,9 +319,10 @@ class NuscDetDataset(Dataset):
         }
 
         sample_indices = []
-
         frac = 1.0 / len(self.classes)
-        ratios = [frac / v for v in class_distribution.values()]
+        ratios = [
+            frac / v if v != 0. else 0. for v in class_distribution.values()
+        ]
         for cls_inds, ratio in zip(list(class_sample_idxs.values()), ratios):
             sample_indices += np.random.choice(cls_inds,
                                                int(len(cls_inds) *
