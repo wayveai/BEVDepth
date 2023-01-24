@@ -15,6 +15,8 @@ from nuscenes.eval.tracking.data_classes import TrackingBox
 from bevdepth.evaluators.det_evaluators import DetNuscEvaluator
 
 
+# modified from 'load_gt' in
+# nuscenes-devkit/python-sdk/nuscenes/eval/common/loaders.py
 def wayve_load_gt(nusc: NuScenes,
                   eval_split: str,
                   box_cls,
@@ -125,6 +127,9 @@ def wayve_load_gt(nusc: NuScenes,
     return all_annotations
 
 
+# identical to 'DetectionEval' in
+# nuscenes-devkit/python-sdk/nuscenes/eval/detection/evaluate.py
+# in order to use 'wayve_load_gt' above
 class WayveScenesEval(DetectionEval):
 
     def __init__(self,
@@ -200,6 +205,8 @@ class WayveScenesEval(DetectionEval):
         self.sample_tokens = self.gt_boxes.sample_tokens
 
 
+# modified from bevdepth/evaluators/det_evaluators.py
+# in order to add wayve dataset logic
 class WayveDetNuscEvaluator(DetNuscEvaluator):
 
     def __init__(
