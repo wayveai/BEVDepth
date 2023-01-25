@@ -53,13 +53,13 @@ def run_cli(
         accelerator='ddp',
         num_sanity_val_steps=0,
         gradient_clip_val=5,
-        # limit_val_batches=0,
-        limit_val_batches=1.0,
-        check_val_every_n_epoch=5,
+        limit_val_batches=0,
+        # limit_val_batches=1.0,
+        # check_val_every_n_epoch=5,
         limit_train_batches=extra_trainer_config_args.get(
             'limit_train_batches', 1.0),
         enable_checkpointing=True,
-        # precision=16,
+        precision=16,
         default_root_dir=training_artifacts_root_dir,
     )
     args = parser.parse_args()
