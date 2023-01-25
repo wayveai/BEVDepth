@@ -37,7 +37,7 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
         optimizer = torch.optim.AdamW(self.model.parameters(),
                                       lr=lr,
                                       weight_decay=1e-7)
-        scheduler = MultiStepLR(optimizer, [1])
+        scheduler = MultiStepLR(optimizer, [2])
         return [[optimizer], [scheduler]]
 
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
         BEVDepthLightningModel,
         'debug_bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da',
         extra_trainer_config_args={
-            'epochs': 1,
-            'limit_train_batches': 10
+            'epochs': 3,
+            'limit_train_batches': 100
         },
     )
