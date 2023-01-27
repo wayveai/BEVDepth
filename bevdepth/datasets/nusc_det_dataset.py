@@ -583,9 +583,7 @@ class NuscDetDataset(Dataset):
         for ann_info in info['ann_infos']:
             # Use ego coordinate.
             if (map_name_from_general_to_detection[ann_info['category_name']]
-                    not in self.classes
-                    or ann_info['num_lidar_pts'] + ann_info['num_radar_pts'] <=
-                    0):
+                    not in self.classes or ann_info['num_lidar_pts'] <= 0):
                 continue
             box = Box(
                 ann_info['translation'],

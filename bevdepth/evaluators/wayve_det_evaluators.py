@@ -80,8 +80,7 @@ def wayve_load_gt(nusc: NuScenes,
                         rotation=sample_annotation['rotation'],
                         velocity=nusc.box_velocity(
                             sample_annotation['token'])[:2],
-                        num_pts=sample_annotation['num_lidar_pts'] +
-                        sample_annotation['num_radar_pts'],
+                        num_pts=sample_annotation['num_lidar_pts'],
                         detection_name=detection_name,
                         detection_score=-1.0,  # GT samples do not have score.
                         attribute_name=attribute_name))
@@ -108,8 +107,7 @@ def wayve_load_gt(nusc: NuScenes,
                         rotation=sample_annotation['rotation'],
                         velocity=nusc.box_velocity(
                             sample_annotation['token'])[:2],
-                        num_pts=sample_annotation['num_lidar_pts'] +
-                        sample_annotation['num_radar_pts'],
+                        num_pts=sample_annotation['num_lidar_pts'],
                         tracking_id=tracking_id,
                         tracking_name=tracking_name,
                         tracking_score=-1.0  # GT samples do not have a score.
