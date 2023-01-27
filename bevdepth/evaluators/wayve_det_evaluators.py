@@ -210,6 +210,7 @@ class WayveDetNuscEvaluator(DetNuscEvaluator):
     def __init__(
         self,
         data_root,
+        version,
         # class_names=[
         #     'car',
         #     'truck',
@@ -231,7 +232,6 @@ class WayveDetNuscEvaluator(DetNuscEvaluator):
             'traffic_cone',
         ],
         eval_version='detection_cvpr_2019',
-        version='v0.1-train',
         modality=dict(
             use_lidar=False,
             use_camera=True,
@@ -243,6 +243,8 @@ class WayveDetNuscEvaluator(DetNuscEvaluator):
         eval_set_map={
             'v0.1-train': 'v0.1-test',
             'v0.1-mini': 'v0.1-mini',
+            'v0.2-train': 'v0.2-test',
+            'v0.2-mini': 'v0.2-mini',
         }
     ) -> None:
         self.eval_version = eval_version

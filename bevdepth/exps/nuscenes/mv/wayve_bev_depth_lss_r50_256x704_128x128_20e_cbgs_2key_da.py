@@ -6,6 +6,8 @@ from bevdepth.exps.nuscenes.base_exp import wayve_data_root
 from bevdepth.exps.nuscenes.mv.bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da import \
     BEVDepthLightningModel as BaseBEVDepthLightningModel  # noqa
 
+WAYVE_DATASET_VERSION = 'v0.2'
+
 H = 1280
 W = 2048
 final_dim = (256, 704)
@@ -38,15 +40,15 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
 
         self.data_root = wayve_data_root
         assert os.path.exists(self.data_root)
-        self.train_info_paths = os.path.join(self.data_root,
-                                             'infos_v0.1-train.pkl')
-        self.val_info_paths = os.path.join(self.data_root,
-                                           'infos_v0.1-test.pkl')
+        self.train_info_paths = os.path.join(
+            self.data_root, f'infos_{WAYVE_DATASET_VERSION}-train.pkl')
+        self.val_info_paths = os.path.join(
+            self.data_root, f'infos_{WAYVE_DATASET_VERSION}-test.pkl')
 
         self.evaluator = WayveDetNuscEvaluator(
             output_dir=self.default_root_dir,
             data_root=self.data_root,
-            version='v0.1-train')
+            version=f'{WAYVE_DATASET_VERSION}-train')
 
 
 if __name__ == '__main__':

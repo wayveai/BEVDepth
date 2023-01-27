@@ -20,7 +20,7 @@ def _generate_and_save_info_pkl(dataset_version: str, dataroot: str):
 def main():
     wayve_scenes_root = './data/wayve-scenes'
 
-    for dataset_version in ['v0.1-train', 'v0.1-test', 'v0.1-mini']:
+    for dataset_version in ['v0.2-train', 'v0.2-test', 'v0.2-mini']:
         _generate_and_save_info_pkl(
             dataset_version=dataset_version,
             dataroot=wayve_scenes_root,
