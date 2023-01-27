@@ -218,7 +218,6 @@ class BEVDepthLightningModel(LightningModule):
         self.eval_interval = eval_interval
         self.batch_size_per_device = batch_size_per_device
         self.data_root = data_root
-        assert os.path.exists(self.data_root)
         self.basic_lr_per_img = 2e-4 / 64
         self.class_names = class_names
         self.backbone_conf = backbone_conf
@@ -251,6 +250,11 @@ class BEVDepthLightningModel(LightningModule):
                                            'nuscenes_infos_val.pkl')
         self.predict_info_paths = os.path.join(self.data_root,
                                                'nuscenes_infos_test.pkl')
+
+    def __post_init__(self):
+        assert os.path.exists(self.data_root)
+        assert os.path.exists(self.train_info_paths)
+        assert os.path.exists(self.val_info_paths)
 
     def forward(self, sweep_imgs, mats):
         return self.model(sweep_imgs, mats)
