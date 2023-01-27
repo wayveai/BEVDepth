@@ -1,44 +1,57 @@
 import os
 
-import torch
-from torch.optim.lr_scheduler import MultiStepLR
-
 from bevdepth.evaluators.wayve_det_evaluators import WayveDetNuscEvaluator
 from bevdepth.exps.base_cli import run_cli
 from bevdepth.exps.nuscenes.base_exp import wayve_data_root
 from bevdepth.exps.nuscenes.mv.bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da import \
     BEVDepthLightningModel as BaseBEVDepthLightningModel  # noqa
 
+H = 1280
+W = 2048
+final_dim = (256, 704)
+
+# TODO: make backbone_conf match better with 3cam
+ida_aug_conf = {
+    'resize_lim': (0.386, 0.55),
+    'final_dim': final_dim,
+    'rot_lim': (-5.4, 5.4),
+    'H': H,
+    'W': W,
+    'rand_flip': True,
+    'bot_pct_lim': (0.1, 0.3),
+    'cams': [
+        'CAM_FRONT_LEFT',
+        'CAM_FRONT',
+        'CAM_FRONT_RIGHT',
+    ],
+    'Ncams': 3,
+}
+
 
 class BEVDepthLightningModel(BaseBEVDepthLightningModel):
 
-    def __init__(self, **kwargs):
+    def __init__(self, ida_aug_conf=ida_aug_conf, **kwargs):
+        self.key_idxes = [-1]
         super().__init__(**kwargs)
+
+        self.ida_aug_conf = ida_aug_conf
+
         self.data_root = wayve_data_root
         assert os.path.exists(self.data_root)
-        self.train_info_paths = os.path.join(self.data_root, 'infos_mini.pkl')
-        self.val_info_paths = os.path.join(self.data_root, 'infos_mini.pkl')
+        self.train_info_paths = os.path.join(self.data_root,
+                                             'infos_v0.1-train.pkl')
+        self.val_info_paths = os.path.join(self.data_root,
+                                           'infos_v0.1-test.pkl')
 
         self.evaluator = WayveDetNuscEvaluator(
             output_dir=self.default_root_dir,
             data_root=self.data_root,
-            version='v0.1-mini')
-
-    def configure_optimizers(self):
-        lr = self.basic_lr_per_img * self.batch_size_per_device * self.gpus
-        optimizer = torch.optim.AdamW(self.model.parameters(),
-                                      lr=lr,
-                                      weight_decay=1e-3)
-        scheduler = MultiStepLR(optimizer, [16, 19])
-        return [[optimizer], [scheduler]]
+            version='v0.1-train')
 
 
 if __name__ == '__main__':
     run_cli(
         BEVDepthLightningModel,
-        'debug_wayve_bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da',
-        extra_trainer_config_args={
-            'epochs': 1,
-            'limit_train_batches': 10
-        },
+        'wayve_bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da',
+        extra_trainer_config_args={'epochs': 20},
     )
