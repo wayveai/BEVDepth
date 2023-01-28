@@ -2,7 +2,7 @@ import os
 
 from bevdepth.evaluators.wayve_det_evaluators import WayveDetNuscEvaluator
 from bevdepth.exps.base_cli import run_cli
-from bevdepth.exps.nuscenes.base_exp import ida_aug_conf, wayve_data_root
+from bevdepth.exps.nuscenes.base_exp import wayve_data_root
 from bevdepth.exps.nuscenes.mv.bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da import \
     BEVDepthLightningModel as BaseBEVDepthLightningModel  # noqa
 
@@ -10,12 +10,24 @@ WAYVE_DATASET_VERSION = 'v0.2'
 
 H = 1280
 W = 2048
+final_dim = (256, 704)
 
 # TODO: make backbone_conf match better with 3cam
-ida_aug_conf.update({
+ida_aug_conf = {
+    'resize_lim': (0.386, 0.55),
+    'final_dim': final_dim,
+    'rot_lim': (-5.4, 5.4),
     'H': H,
     'W': W,
-})
+    'rand_flip': True,
+    'bot_pct_lim': (0.1, 0.3),
+    'cams': [
+        'CAM_FRONT_LEFT',
+        'CAM_FRONT',
+        'CAM_FRONT_RIGHT',
+    ],
+    'Ncams': 3,
+}
 
 
 class BEVDepthLightningModel(BaseBEVDepthLightningModel):
@@ -42,6 +54,6 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
 if __name__ == '__main__':
     run_cli(
         BEVDepthLightningModel,
-        'wayve_bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da',
+        'wayve_3cam_bev_depth_lss_r50_256x704_128x128_20e_cbgs_2key_da',
         extra_trainer_config_args={'epochs': 20},
     )
